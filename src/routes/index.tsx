@@ -87,10 +87,30 @@ function Index() {
   const [requests, setRequests] = useState("");
   const [confirmed, setConfirmed] = useState<Reservation | null>(null);
   const [error, setError] = useState("");
+  const [calMonth, setCalMonth] = useState(monthKey(todayISO()));
+  const [calDay, setCalDay] = useState(todayISO());
 
   const upcoming = useMemo(
     () => reservations.filter((r) => r.date >= todayISO()),
     [reservations],
+  );
+
+  const bookedByDate = useMemo(() => {
+    const map = new Map<string, Reservation[]>();
+    for (const r of reservations) {
+      const list = map.get(r.date) ?? [];
+      list.push(r);
+      map.set(r.date, list);
+    }
+    return map;
+  }, [reservations]);
+
+  const selectedDayBookings = useMemo(
+    () =>
+      (bookedByDate.get(calDay) ?? [])
+        .slice()
+        .sort((a, b) => a.time.localeCompare(b.time)),
+    [bookedByDate, calDay],
   );
 
   function confirmReservation(e: React.FormEvent) {
