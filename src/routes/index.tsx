@@ -48,9 +48,10 @@ function todayISO(offset = 0) {
 }
 
 function Index() {
-  const [reservations, setReservations] = useState<Reservation[]>(() =>
-    loadReservations().sort((a, b) => a.createdAt - b.createdAt),
-  );
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  useEffect(() => {
+    setReservations(loadReservations().sort((a, b) => a.createdAt - b.createdAt));
+  }, []);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [date, setDate] = useState(todayISO(1));
