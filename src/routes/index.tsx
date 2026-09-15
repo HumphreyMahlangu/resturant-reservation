@@ -47,6 +47,32 @@ function todayISO(offset = 0) {
   return d.toISOString().slice(0, 10);
 }
 
+function monthKey(iso: string) {
+  return iso.slice(0, 7); // yyyy-mm
+}
+
+function monthLabel(key: string) {
+  const d = new Date(`${key}-15T12:00:00`);
+  return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
+
+function shiftMonth(key: string, delta: number) {
+  const d = new Date(`${key}-15T12:00:00`);
+  d.setMonth(d.getMonth() + delta);
+  return d.toISOString().slice(0, 7);
+}
+
+function daysInMonth(key: string) {
+  const [y, m] = key.split("-").map(Number);
+  return new Date(y!, m!, 0).getDate();
+}
+
+function firstWeekday(key: string) {
+  // 0 = Monday
+  const d = new Date(`${key}-01T12:00:00`);
+  return (d.getDay() + 6) % 7;
+}
+
 function Index() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   useEffect(() => {
