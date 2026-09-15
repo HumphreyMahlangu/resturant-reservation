@@ -179,6 +179,7 @@ function Index() {
           <div className="hidden items-center gap-8 text-sm font-medium text-foreground/70 md:flex">
             <a href="#book" className="hover:text-foreground">Book</a>
             <a href="#tonight" className="hover:text-foreground">Tonight</a>
+            <a href="#calendar" className="hover:text-foreground">Calendar</a>
             <a href="#your-tables" className="hover:text-foreground">Your tables</a>
             <a href="#experience" className="hover:text-foreground">The experience</a>
           </div>
@@ -397,6 +398,119 @@ function Index() {
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div id="calendar" className="mt-14 scroll-mt-8">
+          <div className="flex items-end justify-between">
+            <h3 className="font-display text-2xl">Booking calendar</h3>
+            <span className="text-sm text-foreground/50">See which times are taken</span>
+          </div>
+          <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="rounded-2xl border border-white/70 bg-white/55 p-5 backdrop-blur-xl">
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => setCalMonth(shiftMonth(calMonth, -1))}
+                  className="grid size-8 place-items-center rounded-lg text-foreground/60 transition hover:bg-sage/10 hover:text-sage-deep"
+                  aria-label="Previous month"
+                >
+                  ←
+                </button>
+                <p className="font-display text-lg">{monthLabel(calMonth)}</p>
+                <button
+                  onClick={() => setCalMonth(shiftMonth(calMonth, 1))}
+                  className="grid size-8 place-items-center rounded-lg text-foreground/60 transition hover:bg-sage/10 hover:text-sage-deep"
+                  aria-label="Next month"
+                >
+                  →
+                </button>
+              </div>
+              <div className="mt-4 grid grid-cols-7 gap-1 text-center text-[11px] font-semibold uppercase tracking-wide text-foreground/40">
+                {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((d) => (
+                  <span key={d}>{d}</span>
+                ))}
+              </div>
+              <div className="mt-1 grid grid-cols-7 gap-1">
+                {Array.from({ length: firstWeekday(calMonth) }).map((_, i) => (
+                  <span key={`blank-${i}`} />
+                ))}
+                {Array.from({ length: daysInMonth(calMonth) }).map((_, i) => {
+                  const iso = `${calMonth}-${String(i + 1).padStart(2, "0")}`;
+                  const count = bookedByDate.get(iso)?.length ?? 0;
+                  const isSelected = iso === calDay;
+                  const isToday = iso === todayISO();
+                  return (
+                    <button
+                      key={iso}
+                      onClick={() => setCalDay(iso)}
+                      className={`relative flex flex-col items-center rounded-xl py-2 text-sm transition ${
+                        isSelected
+                          ? "bg-sage-deep text-primary-foreground"
+                          : isToday
+                            ? "bg-sage/15 font-semibold text-sage-deep"
+                            : "hover:bg-white/70"
+                      }`}
+                    >
+                      {i + 1}
+                      {count > 0 && (
+                        <span
+                          className={`mt-0.5 flex h-1 gap-0.5 ${
+                            isSelected ? "opacity-90" : ""
+                          }`}
+                        >
+                          {Array.from({ length: Math.min(count, 3) }).map((_, d) => (
+                            <span
+                              key={d}
+                              className={`size-1 rounded-full ${
+                                isSelected ? "bg-primary-foreground" : "bg-terra"
+                              }`}
+                            />
+                          ))}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/70 bg-white/55 p-5 backdrop-blur-xl">
+              <div className="flex items-center justify-between">
+                <p className="font-display text-lg">{formatDateLong(calDay)}</p>
+                <span className="rounded-full bg-sage/15 px-3 py-1 text-xs font-medium text-sage-deep">
+                  {selectedDayBookings.length}{" "}
+                  {selectedDayBookings.length === 1 ? "booking" : "bookings"}
+                </span>
+              </div>
+              <div className="mt-4 space-y-1.5">
+                {TIMES.map((t) => {
+                  const bookings = selectedDayBookings.filter((r) => r.time === t);
+                  const taken = bookings.length > 0;
+                  return (
+                    <div
+                      key={t}
+                      className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm ${
+                        taken
+                          ? "bg-terra/15"
+                          : "bg-white/50"
+                      }`}
+                    >
+                      <span className="font-medium">{formatTime(t)}</span>
+                      {taken ? (
+                        <span className="text-xs text-terra">
+                          Taken ·{" "}
+                          {bookings
+                            .map((b) => `${b.name.split(" ")[0]} (${b.partySize})`)
+                            .join(", ")}
+                        </span>
+                      ) : (
+                        <span className="text-xs font-medium text-sage-deep">Open</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
 
