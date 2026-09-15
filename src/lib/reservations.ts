@@ -7,7 +7,7 @@ export interface Reservation {
   time: string; // e.g. "19:30"
   partySize: number;
   seating: string;
-  requests?: string;
+  requests?: string | undefined;
   createdAt: number;
 }
 
@@ -43,7 +43,7 @@ export function formatDateLong(iso: string): string {
 }
 
 export function formatTime(time: string): string {
-  const [h, m] = time.split(":").map(Number);
+  const [h = 0, m = 0] = time.split(":").map(Number);
   const ampm = h >= 12 ? "PM" : "AM";
   const hour = h % 12 === 0 ? 12 : h % 12;
   return `${hour}:${String(m).padStart(2, "0")} ${ampm}`;
