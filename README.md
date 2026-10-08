@@ -22,3 +22,59 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+## Spring Boot backend
+
+The reservation API lives in [`backend/`](./backend/). It uses Java 21, Spring Boot,
+Spring Data JPA, and an H2 file database by default. A PostgreSQL connection can be
+provided through the standard `SPRING_DATASOURCE_*` environment variables.
+
+From the repository root, run:
+
+```sh
+cd backend
+mvn spring-boot:run
+```
+
+The API is available at `http://localhost:8080/api/reservations`:
+
+- `GET /api/reservations` lists reservations in creation order.
+- `POST /api/reservations` creates a reservation.
+- `DELETE /api/reservations/{id}` cancels a reservation.
+
+Example request:
+
+```json
+{
+  "name": "Elena Marchetti",
+  "phone": "+1 415 555 0182",
+  "date": "2026-10-10",
+  "time": "19:30",
+  "partySize": 2,
+  "seating": "Window",
+  "requests": "Window seat"
+}
+```
+
+Set `APP_CORS_ALLOWED_ORIGIN` when the frontend is hosted somewhere other than
+`http://localhost:5173`.
+
+### Supabase PostgreSQL
+
+The backend uses local H2 by default. To use the project's Supabase database,
+copy [`backend/.env.example`](./backend/.env.example) to `backend/.env` and
+replace the password with the database password from Supabase Dashboard →
+Project Settings → Database. Do not commit `backend/.env`.
+
+Alternatively, export the same variables in the shell before running the
+backend. The supported variables are:
+
+```text
+SUPABASE_DB_URL
+SUPABASE_DB_USERNAME
+SUPABASE_DB_PASSWORD
+```
+
+Use the connection string shown by Supabase if the project's database host or
+pooler region differs from the example. The JDBC URL must include
+`sslmode=require`.

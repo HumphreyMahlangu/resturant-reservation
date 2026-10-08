@@ -3,34 +3,70 @@ export interface Reservation {
   reference: string;
   name: string;
   phone: string;
-  date: string; // ISO yyyy-mm-dd
-  time: string; // e.g. "19:30"
+  date: string;
+  time: string;
   partySize: number;
   seating: string;
   requests?: string | undefined;
-  createdAt: number;
+  createdAt: string;
 }
 
-const STORAGE_KEY = "maison-verre-reservations";
+export interface CreateReservationInput {
+  name: string;
+  phone: string;
+  date: string;
+  time: string;
+  partySize: number;
+  seating: string;
+  requests?: string;
+}
 
-export function loadReservations(): Reservation[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
+const API_URL = (import.meta.env["VITE_API_URL"] || "http://localhost:8080").replace(
+  /\/+$/,
+  "",
+);
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${API_URL}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...init?.headers,
+    },
+  });
+
+  if (!response.ok) {
+    let message = `Request failed (${response.status})`;
+    try {
+      const body = (await response.json()) as { message?: string; error?: string };
+      message = body.message || body.error || message;
+    } catch {
+      // Keep the HTTP status when the server does not return JSON.
+    }
+    throw new Error(message);
   }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+  return response.json() as Promise<T>;
 }
 
-export function saveReservations(reservations: Reservation[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(reservations));
+export function loadReservations(): Promise<Reservation[]> {
+  return request<Reservation[]>("/api/reservations");
 }
 
-export function makeReference(): string {
-  const n = Math.floor(1000 + Math.random() * 9000);
-  return `MV-${n}`;
+export function createReservation(input: CreateReservationInput): Promise<Reservation> {
+  return request<Reservation>("/api/reservations", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function cancelReservation(id: string): Promise<void> {
+  return request<void>(`/api/reservations/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
 }
 
 export function formatDateLong(iso: string): string {

@@ -4,8 +4,8 @@ import {
   formatDateLong,
   formatTime,
   loadReservations,
-  makeReference,
-  saveReservations,
+  cancelReservation as cancelReservationApi,
+  createReservation,
   type Reservation,
 } from "../lib/reservations";
 import diningRoom from "../assets/dining-room.jpg";
@@ -75,8 +75,19 @@ function firstWeekday(key: string) {
 
 function Index() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   useEffect(() => {
-    setReservations(loadReservations().sort((a, b) => a.createdAt - b.createdAt));
+    loadReservations()
+      .then((items) =>
+        setReservations(items.sort((a, b) => a.createdAt.localeCompare(b.createdAt))),
+      )
+      .catch((cause: unknown) => {
+        setError(cause instanceof Error ? cause.message : "Unable to load reservations.");
+      })
+      .finally(() => setLoading(false));
   }, []);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -86,7 +97,6 @@ function Index() {
   const [seating, setSeating] = useState("Window");
   const [requests, setRequests] = useState("");
   const [confirmed, setConfirmed] = useState<Reservation | null>(null);
-  const [error, setError] = useState("");
   const [calMonth, setCalMonth] = useState(monthKey(todayISO()));
   const [calDay, setCalDay] = useState(todayISO());
 
@@ -113,38 +123,48 @@ function Index() {
     [bookedByDate, calDay],
   );
 
-  function confirmReservation(e: React.FormEvent) {
+  async function confirmReservation(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || !phone.trim()) {
       setError("Please add your name and phone number.");
       return;
     }
     setError("");
-    const reservation: Reservation = {
-      id: crypto.randomUUID(),
-      reference: makeReference(),
-      name: name.trim(),
-      phone: phone.trim(),
-      date,
-      time,
-      partySize,
-      seating,
-      requests: requests.trim() || undefined,
-      createdAt: Date.now(),
-    };
-    const next = [...reservations, reservation];
-    saveReservations(next);
-    setReservations(next);
-    setConfirmed(reservation);
-    setRequests("");
-    document.getElementById("confirmation")?.scrollIntoView({ behavior: "smooth" });
+    setSubmitting(true);
+    try {
+      const reservationInput = {
+        name: name.trim(),
+        phone: phone.trim(),
+        date,
+        time,
+        partySize,
+        seating,
+        ...(requests.trim() ? { requests: requests.trim() } : {}),
+      };
+      const reservation = await createReservation(reservationInput);
+      setReservations((current) => [...current, reservation]);
+      setConfirmed(reservation);
+      setRequests("");
+      document.getElementById("confirmation")?.scrollIntoView({ behavior: "smooth" });
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message : "Unable to create reservation.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  function cancelReservation(id: string) {
-    const next = reservations.filter((r) => r.id !== id);
-    saveReservations(next);
-    setReservations(next);
-    setConfirmed((c) => (c?.id === id ? null : c));
+  async function cancelReservation(id: string) {
+    setError("");
+    setCancellingId(id);
+    try {
+      await cancelReservationApi(id);
+      setReservations((current) => current.filter((r) => r.id !== id));
+      setConfirmed((current) => (current?.id === id ? null : current));
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message : "Unable to cancel reservation.");
+    } finally {
+      setCancellingId(null);
+    }
   }
 
   function pickSlot(slotTime: string, slotSeating: string) {
@@ -326,9 +346,10 @@ function Index() {
 
               <button
                 type="submit"
+                disabled={submitting || loading}
                 className="mt-5 w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
               >
-                Confirm reservation
+                {submitting ? "Saving reservation…" : "Confirm reservation"}
               </button>
               <p className="mt-3 text-center text-xs text-foreground/40">
                 Free cancellation up to 4 hours before
@@ -521,7 +542,11 @@ function Index() {
               {upcoming.length} {upcoming.length === 1 ? "reservation" : "reservations"}
             </span>
           </div>
-          {upcoming.length === 0 ? (
+          {loading ? (
+            <div className="mt-5 rounded-2xl border border-white/70 bg-white/55 p-8 text-center backdrop-blur-xl">
+              <p className="text-sm text-foreground/50">Loading reservations…</p>
+            </div>
+          ) : upcoming.length === 0 ? (
             <div className="mt-5 rounded-2xl border border-white/70 bg-white/55 p-8 text-center backdrop-blur-xl">
               <p className="text-sm text-foreground/50">
                 No upcoming reservations yet — book your first table above.
@@ -554,9 +579,10 @@ function Index() {
                     </span>
                     <button
                       onClick={() => cancelReservation(r.id)}
+                      disabled={cancellingId === r.id}
                       className="text-xs font-medium text-destructive/70 transition hover:text-destructive"
                     >
-                      Cancel
+                      {cancellingId === r.id ? "Cancelling…" : "Cancel"}
                     </button>
                   </div>
                 </div>
