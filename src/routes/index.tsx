@@ -202,6 +202,7 @@ function Index() {
             <a href="#calendar" className="hover:text-foreground">Calendar</a>
             <a href="#your-tables" className="hover:text-foreground">Your tables</a>
             <a href="#experience" className="hover:text-foreground">The experience</a>
+            <a href="/admin" className="hover:text-foreground">Admin</a>
           </div>
           <a
             href="#book"

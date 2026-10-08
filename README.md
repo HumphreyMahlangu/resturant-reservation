@@ -78,3 +78,77 @@ SUPABASE_DB_PASSWORD
 Use the connection string shown by Supabase if the project's database host or
 pooler region differs from the example. The JDBC URL must include
 `sslmode=require`.
+
+### Restaurant database schema
+
+When the backend starts with `SPRING_JPA_HIBERNATE_DDL_AUTO=update`, Hibernate
+creates or updates these Supabase tables:
+
+- `roles` and `users`
+- `categories` and `menu_items`
+- `restaurant_tables` and `reservations`
+- `restaurant_orders` and `order_items`
+- `payments`
+- `reviews`
+- `notifications`
+
+The relationships follow the supplied ERD: users can have roles, reservations
+can reference users and restaurant tables, menu items belong to categories,
+orders reference users and tables, order items reference orders and menu items,
+payments reference orders, and reviews/notifications reference users.
+
+The restaurant table API is available at:
+
+- `GET /api/tables`
+- `POST /api/tables`
+- `PUT /api/tables/{id}`
+- `DELETE /api/tables/{id}`
+
+### Admin authentication
+
+The admin dashboard at `/admin` requires an authenticated administrator. The
+backend creates the configured admin account on startup if it does not already
+exist, using BCrypt password hashing:
+
+```dotenv
+APP_ADMIN_EMAIL=admin@your-domain.example
+APP_ADMIN_PASSWORD=replace-with-a-strong-admin-password
+APP_SECURITY_JWT_SECRET=replace-with-a-base64-encoded-32-byte-secret
+APP_SECURITY_JWT_EXPIRATION=PT8H
+```
+
+Set these values in `backend/.env` before using the dashboard. The development
+fallback credentials are intentionally only for local setup and should be
+replaced. `POST /api/auth/login` returns a signed token for users with the
+`ADMIN` role. Admin tokens are required for table management and reservation
+cancellation; public reservation listing and creation remain available to
+guests.
+
+Create a table with:
+
+```json
+{
+  "tableNumber": "T-01",
+  "capacity": 4,
+  "status": "AVAILABLE"
+}
+```
+
+### ERD resource APIs
+
+The remaining schema resources expose the same validated JSON CRUD pattern
+(`GET` collection, `POST`, `PUT /{id}`, and `DELETE /{id}`):
+
+- `/api/roles` and `/api/users`
+- `/api/categories` and `/api/menu-items`
+- `/api/orders` and `/api/order-items`
+- `/api/payments`
+- `/api/reviews`
+- `/api/notifications`
+
+Relationship fields use UUIDs: users accept `roleId`, menu items accept
+`categoryId`, orders accept `userId` and optional `tableId`, order items accept
+`orderId` and `menuItemId`, payments accept `orderId`, and reviews and
+notifications accept `userId` (reviews also accept `menuItemId`). All endpoints
+validate request bodies and allow the configured frontend origin via
+`APP_CORS_ALLOWED_ORIGIN`.
